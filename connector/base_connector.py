@@ -13,13 +13,13 @@ class BaseConnector(object):
         self.indexed_fields = {}
 
     def listen(self):
-        print "Listening on topic: {}".format(self.topic)
+        print("Listening on topic: {}".format(self.topic))
         consumer = KafkaConsumer(self.topic)
 
         for msg in consumer:
             object_dict = self.extract_updated_object(msg)
             updated_dict = self.get_updated_indexed_fields(object_dict)
-            print 'UPDATED CONTENT: {}'.format(updated_dict)
+            print('UPDATED CONTENT: {}'.format(updated_dict))
             if updated_dict:
                 self.update_index(updated_dict)
 
@@ -27,8 +27,8 @@ class BaseConnector(object):
         value = getattr(msg, 'value', None)
         if not value:
             return None
-        payload = json.loads(msg.value)['payload']
-        op = payload['op']
+        str_value = str(msg.value, 'utf-8')
+        payload = json.loads(str_value)['payload']
         object_dict = payload['after']
         return object_dict
 
@@ -44,4 +44,4 @@ class BaseConnector(object):
             search_client = SearchClient()
             search_client.update(self.index, self.doc_type, object_dict['id'], object_dict)
         except Exception as e:
-            print e
+            print(e)
