@@ -9,6 +9,14 @@ ELASTICSEARCH_SETTINGS = {
 }
 
 
+class SearchClientError(Exception):
+    def __init__(self, error_msg):
+        self.error_msg = error_msg
+
+    def __str__(self):
+        return '<SearchClientError: {}>'.format(self.error_msg)
+
+
 class SearchClient:
     class __SearchClient:
         def __init__(self):
@@ -21,8 +29,11 @@ class SearchClient:
             SearchClient.instance = SearchClient.__SearchClient()
 
     def update(self, index, doc_type, object_id, updates_dict):
-        update_body = {
-            "doc": updates_dict,
-            "doc_as_upsert": True
-        }
-        self.instance.connection.update(index, doc_type, object_id, update_body)
+        try:
+            update_body = {
+                "doc": updates_dict,
+                "doc_as_upsert": True
+            }
+            self.instance.connection.update(index, doc_type, object_id, update_body)
+        except Exception as ex:
+            raise SearchClientError(ex)

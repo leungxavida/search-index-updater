@@ -1,8 +1,14 @@
 import json
+import logging
 
 from kafka import KafkaConsumer
+from kafka.errors import KafkaError
 
 from search.search_client import SearchClient
+
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 class BaseConnector(object):
@@ -13,15 +19,26 @@ class BaseConnector(object):
         self.indexed_fields = {}
 
     def listen(self):
-        print("Listening on topic: {}".format(self.topic))
-        consumer = KafkaConsumer(self.topic)
+        try:
+            logger.info('Listening on topic: {}'.format(self.topic))
+            consumer = KafkaConsumer(self.topic)
 
-        for msg in consumer:
-            object_dict = self.extract_updated_object(msg)
-            updated_dict = self.get_updated_indexed_fields(object_dict)
-            print('UPDATED CONTENT: {}'.format(updated_dict))
-            if updated_dict:
-                self.update_index(updated_dict)
+            for msg in consumer:
+                object_dict = self.extract_updated_object(msg)
+                if object_dict:
+                    updated_dict = self.get_updated_indexed_fields(object_dict)
+                    if updated_dict:
+                        try:
+                            self.update_index(updated_dict)
+                        except Exception as se:
+                            error_message = ('Error with SearchClient: {}\n'
+                                             'Failed attempt to update with doc: {}'
+                                             ).format(se, updated_dict)
+                            logger.error(error_message)
+
+        except Exception as ex:
+            if isinstance(ex, KafkaError):
+                logger.error('Error with Kafka: {}'.format(ex))
 
     def extract_updated_object(self, msg):
         value = getattr(msg, 'value', None)
@@ -40,8 +57,5 @@ class BaseConnector(object):
         return updated_indexed_fields
 
     def update_index(self, object_dict):
-        try:
-            search_client = SearchClient()
-            search_client.update(self.index, self.doc_type, object_dict['id'], object_dict)
-        except Exception as e:
-            print(e)
+        search_client = SearchClient()
+        search_client.update(self.index, self.doc_type, object_dict['id'], object_dict)
