@@ -1,7 +1,11 @@
-from connector.base_connector import BaseConnector
+from search.index.adapter.base_adapter import BaseIndexAdapter
 
 
-class UserConnector(BaseConnector):
+class UserAdapter(BaseIndexAdapter):
+    """
+    User Adapter used to listen on user model changes and updates specified
+    search index according to indexed fields
+    """
     def __init__(self):
         self.topic = 'dbsvname.public.accounts_user'
 
